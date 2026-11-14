@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import "./App.css";
+import { pickMissionEvent } from "./events/missionEvents";
 
 const STARTING_RESOURCES = {
   water: 100,
@@ -20,56 +21,81 @@ function App() {
   const [destination, setDestination] = useState("moon");
   const [started, setStarted] = useState(false);
   const [day, setDay] = useState(1);
-  const [resources, setResources] = useState(STARTING_RESOURCES);
+  const [resources, setResources] = useState({ ...STARTING_RESOURCES });
   const [message, setMessage] = useState("Mission ready. Protect your crew.");
-
   const [missionStatus, setMissionStatus] = useState("ACTIVE");
 
+  const [pendingEvent, setPendingEvent] = useState(null);
+  const [lastEventId, setLastEventId] = useState(null);
+
   function startMission() {
-    setResources(STARTING_RESOURCES);
+    setResources({ ...STARTING_RESOURCES });
     setDay(1);
     setMissionStatus("ACTIVE");
+    setPendingEvent(null);
+    setLastEventId(null);
     setMessage("Your crew has arrived. Good luck, Commander.");
     setStarted(true);
   }
 
   function useAction(action) {
-    if (missionStatus !== "ACTIVE") return;
+    if (missionStatus !== "ACTIVE" || pendingEvent) return;
 
-    setResources((previous) => {
-      const next = { ...previous };
+    const next = { ...resources };
 
-      if (action === "recycle") {
-        if (next.power < 8) {
-          setMessage("Not enough power to operate the water recycler!");
-          return previous;
-        }
-        next.water = Math.min(100, next.water + 18);
-        next.power -= 8;
-        setMessage("Water recycling system activated. +18 water.");
+    if (action === "recycle") {
+      if (next.power < 8) {
+        setMessage("Not enough power to operate the water recycler!");
+        return;
       }
+      next.water = Math.min(100, next.water + 18);
+      next.power -= 8;
+      setMessage("Water recycling system activated. +18 water.");
+    }
 
-      if (action === "grow") {
-        if (next.power < 12) {
-          setMessage("Not enough power to operate the greenhouse!");
-          return previous;
-        }
-        next.food = Math.min(100, next.food + 15);
-        next.power -= 12;
-        setMessage("Greenhouse harvest complete. +15 food.");
+    if (action === "grow") {
+      if (next.power < 12) {
+        setMessage("Not enough power to operate the greenhouse!");
+        return;
       }
+      next.food = Math.min(100, next.food + 15);
+      next.power -= 12;
+      setMessage("Greenhouse harvest complete. +15 food.");
+    }
 
-      if (action === "solar") {
-        next.power = Math.min(100, next.power + 20);
-        setMessage("Solar array recharged. +20 power.");
-      }
+    if (action === "solar") {
+      next.power = Math.min(100, next.power + 20);
+      setMessage("Solar array recharged. +20 power.");
+    }
 
-      return next;
+    setResources(next);
+  }
+
+  function resolveEvent(choice) {
+    const next = { ...resources };
+
+    Object.entries(choice.effects).forEach(([resource, change]) => {
+      next[resource] = Math.max(
+        0,
+        Math.min(100, next[resource] + change)
+      );
     });
+
+    setResources(next);
+    setPendingEvent(null);
+
+    const failed = Object.values(next).some((value) => value <= 0);
+
+    if (failed) {
+      setMissionStatus("FAILED");
+      setMessage("Critical resource shortage. Mission failed.");
+    } else {
+      setMessage(choice.feedback);
+    }
   }
 
   function advanceDay() {
-    if (missionStatus !== "ACTIVE") return;
+    if (missionStatus !== "ACTIVE" || pendingEvent) return;
 
     const next = {
       water: Math.max(0, resources.water - 7),
@@ -78,17 +104,29 @@ function App() {
       power: Math.max(0, resources.power - 10),
     };
 
-    const failed = Object.values(next).some((value) => value <= 0);
-
     setResources(next);
     setDay((previous) => previous + 1);
+
+    const failed = Object.values(next).some((value) => value <= 0);
 
     if (failed) {
       setMissionStatus("FAILED");
       setMessage("Critical resource shortage. Mission failed.");
-    } else if (day >= 14) {
+      return;
+    }
+
+    if (day >= 14) {
       setMissionStatus("SUCCESS");
       setMessage("15-day mission completed! Your crew survived.");
+      return;
+    }
+
+    // A mission event has a 35% chance of appearing each day.
+    if (Math.random() < 0.35) {
+      const event = pickMissionEvent(lastEventId);
+      setPendingEvent(event);
+      setLastEventId(event.id);
+      setMessage("Emergency alert! The crew needs your decision.");
     } else {
       setMessage(`Day ${day + 1} complete. All systems updated.`);
     }
@@ -97,7 +135,9 @@ function App() {
   return (
     <main className="app">
       <nav className="navbar">
-        <div className="logo">OUTPOST<span>.</span></div>
+        <div className="logo">
+          OUTPOST<span>.</span>
+        </div>
         <div className="nav-label">MISSION TRAINER // 2026</div>
         <div className="status">
           <span className="status-dot"></span>
@@ -109,7 +149,11 @@ function App() {
         <section className="hero">
           <div className="hero-content">
             <div className="eyebrow">NASA SPACE APPS CHALLENGE // 2026</div>
-            <h1>HUMANITY'S<br />NEXT <span>FRONTIER.</span></h1>
+            <h1>
+              HUMANITY'S
+              <br />
+              NEXT <span>FRONTIER.</span>
+            </h1>
             <p className="description">
               One crew. One outpost. A thousand ways to survive.
               Take command of humanity's next settlement.
@@ -121,7 +165,8 @@ function App() {
               {["moon", "mars"].map((place) => (
                 <button
                   key={place}
-                  className={`destination-card ${destination === place ? "selected" : ""}`}
+                  className={`destination-card ${destination === place ? "selected" : ""
+                    }`}
                   onClick={() => setDestination(place)}
                 >
                   <div className="planet">
@@ -139,6 +184,7 @@ function App() {
             <button className="launch-button" onClick={startMission}>
               INITIALIZE MISSION →
             </button>
+
             <div className="disclaimer">
               GAMEPLAY VALUES ARE ILLUSTRATIVE, NOT ENGINEERING SPECIFICATIONS
             </div>
@@ -159,8 +205,12 @@ function App() {
         <section className="mission">
           <div className="mission-heading">
             <div>
-              <div className="eyebrow">MISSION CONTROL // {destination.toUpperCase()}</div>
-              <h1>OUTPOST <span>COMMAND.</span></h1>
+              <div className="eyebrow">
+                MISSION CONTROL // {destination.toUpperCase()}
+              </div>
+              <h1>
+                OUTPOST <span>COMMAND.</span>
+              </h1>
               <p className="description">
                 Monitor your crew. Manage your resources. Survive 15 days.
               </p>
@@ -177,23 +227,58 @@ function App() {
             <p>{message}</p>
           </div>
 
+          {pendingEvent && (
+            <div className="event-panel">
+              <div className="event-heading">
+                <span>⚠ INCOMING MISSION EVENT</span>
+                <span className="event-severity">
+                  {pendingEvent.severity}
+                </span>
+              </div>
+
+              <h2>{pendingEvent.title}</h2>
+              <p className="event-description">
+                {pendingEvent.description}
+              </p>
+
+              <div className="event-options">
+                {pendingEvent.choices.map((choice) => (
+                  <button
+                    className="event-choice"
+                    key={choice.id}
+                    onClick={() => resolveEvent(choice)}
+                  >
+                    <strong>{choice.label}</strong>
+                    <span>{choice.description}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <h3 className="section-label">LIFE SUPPORT SYSTEMS</h3>
 
           <div className="resource-grid">
             {resourceInfo.map((item) => {
               const amount = resources[item.key];
+
               return (
                 <div className="resource-card" key={item.key}>
                   <div className="resource-top">
-                    <span>{item.icon} {item.label}</span>
+                    <span>
+                      {item.icon} {item.label}
+                    </span>
                     <span>{amount}%</span>
                   </div>
+
                   <div className="resource-track">
                     <div
-                      className={`resource-fill ${amount < 30 ? "low" : ""}`}
+                      className={`resource-fill ${amount < 30 ? "low" : ""
+                        }`}
                       style={{ width: `${amount}%` }}
                     ></div>
                   </div>
+
                   <small>DAILY CONSUMPTION: {item.daily} UNITS</small>
                 </div>
               );
@@ -203,19 +288,31 @@ function App() {
           <h3 className="section-label">OUTPOST OPERATIONS</h3>
 
           <div className="action-grid">
-            <button className="action-card" onClick={() => useAction("recycle")}>
+            <button
+              className="action-card"
+              onClick={() => useAction("recycle")}
+              disabled={missionStatus !== "ACTIVE" || !!pendingEvent}
+            >
               <span>💧</span>
               <strong>WATER RECYCLER</strong>
               <small>+18 water / -8 power</small>
             </button>
 
-            <button className="action-card" onClick={() => useAction("grow")}>
+            <button
+              className="action-card"
+              onClick={() => useAction("grow")}
+              disabled={missionStatus !== "ACTIVE" || !!pendingEvent}
+            >
               <span>🌱</span>
               <strong>GREENHOUSE</strong>
               <small>+15 food / -12 power</small>
             </button>
 
-            <button className="action-card" onClick={() => useAction("solar")}>
+            <button
+              className="action-card"
+              onClick={() => useAction("solar")}
+              disabled={missionStatus !== "ACTIVE" || !!pendingEvent}
+            >
               <span>☀️</span>
               <strong>SOLAR ARRAY</strong>
               <small>+20 power</small>
@@ -226,7 +323,7 @@ function App() {
             <button
               className="launch-button"
               onClick={advanceDay}
-              disabled={missionStatus !== "ACTIVE"}
+              disabled={missionStatus !== "ACTIVE" || !!pendingEvent}
             >
               ADVANCE TO NEXT DAY →
             </button>
@@ -241,7 +338,11 @@ function App() {
 
           {missionStatus !== "ACTIVE" && (
             <div className="mission-result">
-              <h2>{missionStatus === "SUCCESS" ? "MISSION SUCCESS" : "MISSION FAILED"}</h2>
+              <h2>
+                {missionStatus === "SUCCESS"
+                  ? "MISSION SUCCESS"
+                  : "MISSION FAILED"}
+              </h2>
               <p>{message}</p>
               <button className="launch-button" onClick={startMission}>
                 RESTART MISSION
