@@ -1,0 +1,31 @@
+OUTPOST — TRUE 360° PLANET MENU
+
+This update uses the actual 8K equirectangular surface maps from the uploaded
+Moon and Mars asset archives to render real, lit 3D spheres with Three.js.
+
+FILES TO REPLACE
+- src/App.jsx
+- src/App.css
+
+ASSETS TO COPY
+- public/assets/moon-texture.jpg
+- public/assets/mars-texture.jpg
+
+INSTALL DEPENDENCY (from your project root)
+npm install three
+
+THEN RUN
+npm run build
+npm run dev
+
+WHAT YOU GET
+- Continuously rotating 3D Moon and Mars on the main menu
+- Drag either globe horizontally to rotate it manually
+- Directional cinematic sunlight, shadowing and subtle colored rim glow
+- Faint animated stars and orbital detail behind the globe
+- Responsive planet sizing: large hero globe on desktop, scaled for mobile
+- Existing mission gameplay remains in App.jsx; gameplay/event files are not replaced
+
+NOTE
+The supplied FBX files are included in the source archives but are not needed here:
+the 8K equirectangular JPGs are the correct inputs for wrapping onto a sphere.
