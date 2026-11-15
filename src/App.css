@@ -663,3 +663,22 @@ button {
   letter-spacing: 1px;
   font-size: 9px;
 }
+
+/* OUTPOST survival systems, save/load and expanded operations */
+.outpost-action-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.save-file-input { display: none; }
+.save-notice { margin-top: 12px; color: #8bd6a2; font: 10px 'DM Mono', monospace; letter-spacing: .5px; }
+.mission-actions-footer { flex-wrap: wrap; }
+.mission-actions-footer .launch-button { flex: 1 1 240px; }
+.mission-actions-footer .back-button { flex: 0 1 auto; }
+.xp-role:disabled { opacity: .65; cursor: not-allowed; }
+.action-card:disabled { opacity: .38; filter: grayscale(.65); cursor: not-allowed; transform: none; }
+.action-card small:last-child { color: #e6a34b; font: 8px 'DM Mono', monospace; letter-spacing: .7px; }
+@media (max-width: 1000px) { .outpost-action-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 650px) {
+  .outpost-action-grid { grid-template-columns: 1fr; }
+  .mission-actions-footer { align-items: stretch; flex-direction: column; }
+  .mission-actions-footer .back-button, .mission-actions-footer .launch-button { width: 100%; max-width: none; }
+}
+
+.landing-load-button { width: 100%; margin-top: 10px; }
