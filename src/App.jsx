@@ -2,7 +2,7 @@ import { useState } from "react";
 import "./App.css";
 import { pickMissionEvent } from "./events/missionEvents";
 import {
-  CREW_ROLES, MISSION_OBJECTIVES, RESEARCH_UPGRADES,
+  CREW_ROLES, MISSION_OBJECTIVES, RESEARCH_UPGRADES, OPERATION_LIMITS,
   applyEventEffects, calculateDailyConsumption, calculateMissionScore,
   chooseExtendedEvent, getRole
 } from "./game/gameplay";
@@ -36,6 +36,11 @@ function App() {
   const [extendedEvent, setExtendedEvent] = useState(null);
   const [lastExtendedEventId, setLastExtendedEventId] = useState(null);
   const [eventHistory, setEventHistory] = useState([]);
+  const [operationUses, setOperationUses] = useState({
+  recycle: 0,
+  grow: 0,
+  solar: 0,
+});
 
   const role = getRole(crewRole);
   const objective = MISSION_OBJECTIVES[destination].find((item) => item.id === objectiveId);
@@ -59,30 +64,55 @@ function App() {
     setResearch(0);
     setObjectiveProgress(0);
     setUpgrades([]);
+    setOperationUses({
+  recycle: 0,
+  grow: 0,
+  solar: 0,
+});
     setAbilityUsed(false);
     setMessage("Your crew has arrived. Good luck, Commander.");
     setStarted(true);
   }
 
-  function useAction(action) {
-    if (missionStatus !== "ACTIVE" || pendingEvent || extendedEvent) return;
-    const next = { ...resources };
-    if (action === "recycle") {
-      if (next.power < 8) return setMessage("Not enough power to operate the water recycler!");
-      next.water = Math.min(100, next.water + 18);
-      next.power -= 8;
-      setMessage("Water recycling system activated. +18 water.");
-    } else if (action === "grow") {
-      if (next.power < 12) return setMessage("Not enough power to operate the greenhouse!");
-      next.food = Math.min(100, next.food + (upgrades.includes("crop-yield") ? 22 : 15));
-      next.power -= 12;
-      setMessage("Greenhouse harvest complete. Food reserves replenished.");
-    } else if (action === "solar") {
-      next.power = Math.min(100, next.power + 20);
-      setMessage("Solar array recharged. +20 power.");
-    }
-    setResources(next);
+  
+function useAction(action) {
+  if (missionStatus !== "ACTIVE" || pendingEvent || extendedEvent) return;
+
+  if (operationUses[action] >= OPERATION_LIMITS[action]) {
+    setMessage("Daily operation limit reached. Available again tomorrow.");
+    return;
   }
+
+  const next = { ...resources };
+
+  if (action === "recycle") {
+    if (next.power < 8) {
+      setMessage("Insufficient power for water recycling.");
+      return;
+    }
+    next.water = Math.min(100, next.water + 18);
+    next.power -= 8;
+    setMessage("Water recovery complete. +18 water, -8 power.");
+  } else if (action === "grow") {
+    if (next.power < 12) {
+      setMessage("Insufficient power for greenhouse operations.");
+      return;
+    }
+    next.food = Math.min(100, next.food + (upgrades.includes("crop-yield") ? 22 : 15));
+    next.power -= 12;
+    setMessage("Greenhouse harvest complete. Food reserves replenished.");
+  } else if (action === "solar") {
+    next.power = Math.min(100, next.power + 20);
+    setMessage("Solar array operational. +20 power.");
+  }
+
+  setResources(next);
+  setOperationUses(previous => ({
+    ...previous,
+    [action]: previous[action] + 1
+  }));
+}
+
 
   function activateCrewAbility() {
     if (abilityUsed || missionStatus !== "ACTIVE" || pendingEvent || extendedEvent) return;
@@ -143,6 +173,11 @@ function App() {
     };
     setResources(next);
     setDay((previous) => previous + 1);
+    setOperationUses({
+  recycle: 0,
+  grow: 0,
+  solar: 0,
+});
     setAbilityUsed(false);
     const healthLoss = resources.oxygen < 25 || resources.food < 25 ? 8 : 2;
     const nextHealth = Math.max(0, crewHealth - healthLoss);
@@ -270,12 +305,52 @@ function App() {
             })}
           </div>
 
-          <h3 className="section-label">OUTPOST OPERATIONS</h3>
-          <div className="action-grid">
-            <button className="action-card" onClick={() => useAction("recycle")} disabled={missionStatus !== "ACTIVE" || !!pendingEvent || !!extendedEvent}><span>💧</span><strong>WATER RECYCLER</strong><small>+18 water / -8 power</small></button>
-            <button className="action-card" onClick={() => useAction("grow")} disabled={missionStatus !== "ACTIVE" || !!pendingEvent || !!extendedEvent}><span>🌱</span><strong>GREENHOUSE</strong><small>+{upgrades.includes("crop-yield") ? 22 : 15} food / -12 power</small></button>
-            <button className="action-card" onClick={() => useAction("solar")} disabled={missionStatus !== "ACTIVE" || !!pendingEvent || !!extendedEvent}><span>☀️</span><strong>SOLAR ARRAY</strong><small>+20 power</small></button>
-          </div>
+        
+<h3 className="section-label">OUTPOST OPERATIONS</h3>
+
+<div className="xp-research-head">
+  <span>DAILY OPERATIONS REMAINING</span>
+  <strong>
+    {Object.entries(OPERATION_LIMITS).reduce(
+      (total, [key, limit]) => total + limit - operationUses[key],
+      0
+    )} / 4
+  </strong>
+</div>
+
+<div className="action-grid">
+  {[
+    { id: "recycle", icon: "💧", name: "WATER RECYCLER", detail: "+18 water / -8 power" },
+    { id: "grow", icon: "🌱", name: "GREENHOUSE", detail: `+${upgrades.includes("crop-yield") ? 22 : 15} food / -12 power` },
+    { id: "solar", icon: "☀️", name: "SOLAR ARRAY", detail: "+20 power" },
+  ].map((operation) => {
+    const remaining = OPERATION_LIMITS[operation.id] - operationUses[operation.id];
+    const disabled =
+      remaining <= 0 ||
+      missionStatus !== "ACTIVE" ||
+      !!pendingEvent ||
+      !!extendedEvent;
+
+    return (
+      <button
+        key={operation.id}
+        className="action-card"
+        onClick={() => useAction(operation.id)}
+        disabled={disabled}
+      >
+        <span>{operation.icon}</span>
+        <strong>{operation.name}</strong>
+        <small>{operation.detail}</small>
+        <small>
+          {remaining > 0
+            ? `${remaining} / ${OPERATION_LIMITS[operation.id]} USES LEFT`
+            : "DAILY LIMIT REACHED"}
+        </small>
+      </button>
+    );
+  })}
+</div>
+
 
           <h3 className="section-label">RESEARCH & DEVELOPMENT</h3>
           <div className="xp-research-head"><span>RESEARCH POINTS</span><strong>{research} RP</strong></div>

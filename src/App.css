@@ -643,3 +643,23 @@ button {
 .extended-event{border-color:#66859d;background:rgba(30,65,88,.18)}
 @media(max-width:900px){.xp-crew-grid{grid-template-columns:1fr}.xp-role-select{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:650px){.xp-research-grid,.xp-objective{grid-template-columns:1fr}.xp-upgrade{align-items:flex-start;flex-direction:column}.xp-objective-progress{text-align:left}.xp-ability{align-items:flex-start;flex-direction:column}.xp-ability button{width:100%}}
+
+.action-card:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+  filter: grayscale(0.7);
+}
+
+.action-card:not(:disabled) {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.action-card:not(:disabled):hover {
+  transform: translateY(-3px);
+}
+
+.action-card small:last-child {
+  color: #efa640;
+  letter-spacing: 1px;
+  font-size: 9px;
+}

@@ -4,6 +4,15 @@ export const CREW_ROLES = [
   { id:"medic", name:"MEDICAL OFFICER", icon:"✚", passive:"Daily oxygen consumption reduced by 2.", ability:"Medical Stabilisation", effect:"Restore 20 crew health and 8 morale." },
   { id:"commander", name:"MISSION COMMANDER", icon:"★", passive:"Daily water consumption reduced by 2.", ability:"Emergency Rationing", effect:"Restore 15 units to all reserves." },
 ];
+
+
+
+export const OPERATION_LIMITS = {
+  recycle: 2, // Water recycler: twice per day
+  grow: 1,    // Greenhouse: once per day
+  solar: 1,   // Solar array: once per day
+};
+
 export const MISSION_OBJECTIVES = {
   moon: [
     {id:"ice",title:"Polar Ice Reconnaissance",description:"Survey a permanently shadowed region and identify potential water-ice deposits.",target:60},
