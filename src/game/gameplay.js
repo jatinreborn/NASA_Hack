@@ -1,17 +1,17 @@
 export const CREW_ROLES = [
-  { id:"engineer", name:"SYSTEMS ENGINEER", icon:"⚙", passive:"Daily power use -2. Maintenance restores more system integrity.", ability:"Emergency Repair", effect:"Restore 20 power and system integrity once per mission." },
-  { id:"scientist", name:"SCIENCE OFFICER", icon:"⌬", passive:"Daily food use -2. Surface surveys earn bonus research.", ability:"Rapid Experiment", effect:"Gain 15 research points and objective progress." },
-  { id:"medic", name:"MEDICAL OFFICER", icon:"✚", passive:"Daily oxygen use -2. Medical treatment restores more health.", ability:"Medical Stabilisation", effect:"Restore 20 crew health and 8 morale." },
-  { id:"commander", name:"MISSION COMMANDER", icon:"★", passive:"Daily water use -2. Crew rest restores additional morale.", ability:"Emergency Rationing", effect:"Restore 15 units to all reserves." },
+  { id:"engineer", name:"SYSTEMS ENGINEER", icon:"⚙", passive:"Daily power consumption reduced by 2.", ability:"Emergency Repair", effect:"Restore 20 power once per mission." },
+  { id:"scientist", name:"SCIENCE OFFICER", icon:"⌬", passive:"Daily food consumption reduced by 2.", ability:"Rapid Experiment", effect:"Gain 15 research points and objective progress." },
+  { id:"medic", name:"MEDICAL OFFICER", icon:"✚", passive:"Daily oxygen consumption reduced by 2.", ability:"Medical Stabilisation", effect:"Restore 20 crew health and 8 morale." },
+  { id:"commander", name:"MISSION COMMANDER", icon:"★", passive:"Daily water consumption reduced by 2.", ability:"Emergency Rationing", effect:"Restore 15 units to all reserves." },
 ];
 
 
 
 export const OPERATION_LIMITS = {
-  recycle: 2, grow: 1, solar: 1, maintenance: 1,
-  treatment: 1, rest: 1, explore: 1, diagnostics: 1,
+  recycle: 2, // Water recycler: twice per day
+  grow: 1,    // Greenhouse: once per day
+  solar: 1,   // Solar array: once per day
 };
-export const SAVE_VERSION = 1;
 
 export const MISSION_OBJECTIVES = {
   moon: [
